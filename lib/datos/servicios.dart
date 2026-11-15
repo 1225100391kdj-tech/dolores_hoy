@@ -5,11 +5,9 @@ import '../dominio/modelos.dart';
 import 'cliente_seguro.dart';
 import 'config_claves.dart';
 
-// API 1: Open-Meteo
-// Consulta el clima de Dolores Hidalgo.
+// API 1: Open-Meteo.
 class ServicioClima {
   final ClienteSeguro _cliente;
-
   ServicioClima(this._cliente);
 
   Future<Clima> actual({
@@ -43,23 +41,17 @@ class ServicioClima {
   }
 }
 
-// API 2: Frankfurter
-// Consulta el tipo de cambio del peso frente al dólar y euro.
+// API 2: Frankfurter.
 class ServicioCambio {
   final ClienteSeguro _cliente;
-
   ServicioCambio(this._cliente);
 
   Future<TipoCambio> deMxn() async {
     final json = await _cliente.obtenerJson(
-      Uri.https(
-        'api.frankfurter.dev',
-        '/v1/latest',
-        {
-          'base': 'MXN',
-          'symbols': 'USD,EUR',
-        },
-      ),
+      Uri.https('api.frankfurter.dev', '/v1/latest', {
+        'base': 'MXN',
+        'symbols': 'USD,EUR',
+      }),
     );
 
     return convertir(() {
@@ -80,11 +72,9 @@ class ServicioCambio {
   }
 }
 
-// API 3: Nager.Date
-// Consulta los días festivos oficiales de México.
+// API 3: Nager.Date.
 class ServicioFestivos {
   final ClienteSeguro _cliente;
-
   ServicioFestivos(this._cliente);
 
   Future<List<Festivo>> proximos({
@@ -140,11 +130,9 @@ class ServicioFestivos {
   }
 }
 
-// API 4: Wikipedia
-// Busca un tema indicado por el usuario.
+// API 4: Wikipedia.
 class ServicioWikipedia {
   final ClienteSeguro _cliente;
-
   ServicioWikipedia(this._cliente);
 
   static String normalizarTema(String tema) {
@@ -196,8 +184,8 @@ class ServicioWikipedia {
   }
 }
 
-// API 5: NASA
-// Consulta la fotografía astronómica del día.
+// API 5: NASA APOD.
+// Usa el endpoint nuevo y conserva la validacion de claves.
 class ServicioNasa {
   final ClienteSeguro _cliente;
   final ConfigClaves _claves;
@@ -207,20 +195,52 @@ class ServicioNasa {
   Future<FotoAstronomica> fotoDelDia() async {
     _claves.validar();
 
-    final json = await _cliente.obtenerJson(
+    final respuesta = await _cliente.obtenerJson(
       Uri.https(
-        'api.nasa.gov',
-        '/planetary/apod',
+        'science.nasa.gov',
+        '/wp-json/wp/v2/apod-basic',
         {
+          'per_page': '1',
           'api_key': _claves.nasa,
         },
       ),
     );
 
-    return convertir(
-      () => FotoAstronomica.desdeJson(
-        json as Map<String, dynamic>,
-      ),
-    );
+    return convertir(() {
+      final Map<String, dynamic> datos;
+
+      if (respuesta is List) {
+        if (respuesta.isEmpty) {
+          throw const RespuestaInvalidaException();
+        }
+
+        datos = Map<String, dynamic>.from(
+          respuesta.first as Map,
+        );
+      } else {
+        datos = Map<String, dynamic>.from(
+          respuesta as Map,
+        );
+      }
+
+      // hdurl contiene la fotografia cuando esta disponible.
+      // Se rechazan imagenes HTTP inseguras.
+      if (datos['media_type'] == 'image' &&
+          datos.containsKey('hdurl')) {
+        final imagen = datos['hdurl'];
+
+        datos['url'] = imagen is String &&
+                Uri.tryParse(imagen)?.scheme == 'https'
+            ? imagen
+            : null;
+      } else if (datos['media_type'] == 'image' &&
+          datos['url'] is String &&
+          (datos['url'] as String)
+              .startsWith('https://science.nasa.gov/')) {
+        datos['url'] = null;
+      }
+
+      return FotoAstronomica.desdeJson(datos);
+    });
   }
 }

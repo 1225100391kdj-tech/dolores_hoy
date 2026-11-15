@@ -1,87 +1,49 @@
 
-# 🌎 Dolores Hoy
 
-## Descripción del proyecto
 
-Dolores Hoy es una aplicación desarrollada con Flutter que permite consultar información de Dolores Hidalgo, Guanajuato, mediante el consumo de cinco APIs REST gratuitas.
 
-La aplicación muestra información del clima, tipo de cambio, días festivos, Wikipedia y la fotografía astronómica del día proporcionada por NASA.
-
-El proyecto fue desarrollado aplicando la metodología TDD (Test Driven Development) y buenas prácticas de seguridad informática.
-
-## Objetivo
-
-Desarrollar una aplicación Flutter que consuma cinco APIs externas, implemente pruebas automatizadas y aplique medidas de seguridad para proteger los datos y garantizar un funcionamiento confiable.
-
-## Tecnologías utilizadas
-
-- Flutter
-- Dart
-- HTTP y JSON
-- APIs REST
-- Visual Studio Code
-- MockClient
-- Pruebas TDD
-
-## APIs utilizadas
-
-### 1. Open-Meteo — Clima
-
-Permite consultar el clima actual de Dolores Hidalgo.
-
-Información mostrada:
-- Temperatura en grados Celsius.
-- Humedad.
-- Velocidad del viento.
-- Condiciones climáticas.
 
 ![Pantallas](screenshots/imagen1.png)
 
-### 2. Frankfurter — Tipo de cambio
-
-Permite consultar el tipo de cambio del peso mexicano frente al dólar estadounidense y al euro.
-
-Información mostrada:
-- Precio de un dólar en pesos mexicanos.
-- Precio de un euro en pesos mexicanos.
-- Fecha de actualización.
-
 ![Pantallas](screenshots/imagen2.png)
-
-### 3. Nager.Date — Días festivos
-
-Consulta los días festivos oficiales de México.
-
-Información mostrada:
-- Nombre del día festivo.
-- Fecha de celebración.
-- Próximos días festivos del año.
 
 ![Pantallas](screenshots/imagen3.png)
 
-### 4. Wikipedia — Información
-
-Permite buscar información de un tema utilizando Wikipedia en español.
-
-Características:
-- Búsqueda mediante texto.
-- Visualización del título.
-- Resumen del artículo.
-- Imagen, cuando está disponible.
-
 ![Pantallas](screenshots/imagen4.png)
 
-### 5. NASA — Foto astronómica
-
-Consulta la fotografía astronómica del día mediante NASA APOD.
-
-Información mostrada:
-- Título.
-- Fotografía astronómica.
-- Descripción.
-- Fecha de publicación.
 
 ![Pantallas](screenshots/imagen5.png)
 
-## Medidas de seguridad
+### Prueba 1. Validación del cliente HTTP seguro
+Se realizaron pruebas automatizadas para verificar el uso obligatorio de HTTPS, el manejo de errores de conexión, la validación de respuestas JSON, los límites de tiempo y tamaño, y la protección de claves privadas en las URLs.
+[Pantallas](screenshots/01_cliente_seguro.png)
+
+[Pantallas](screenshots/02_cinco_apis.png)
+
+[Pantallas](screenshots/03_seguridad.png)
+
+[Pantallas](screenshots/04_viewmodel.png)
+
+[Pantallas](screenshots/05_pruebas_completas.png)
+
+### Prueba 6. Consumo de la API Open-Meteo
+Se comprobó que la aplicación consulta la API Open-Meteo para obtener y mostrar información meteorológica de Dolores Hidalgo, incluyendo la temperatura y las condiciones del clima.
+[Pantallas](screenshots/06_api_clima..png)
+
+### Prueba 7. Consumo de la API Frankfurter
+Se comprobó que la aplicación Dolores Hoy consulta correctamente la API Frankfurter para obtener información del tipo de cambio y mostrar la equivalencia del dólar estadounidense y el euro en pesos mexicanos.
+[Pantallas](screenshots/07_api_tipo_cambio.png)
+
+### Prueba 8. Consumo de la API Nager.Date
+Se comprobó que la aplicación Dolores Hoy consulta la API Nager.Date para obtener los próximos días festivos oficiales de México, mostrando sus nombres y fechas correspondientes.
+[Pantallas](screenshots/08_api_festivos.png)
+
+### Prueba 9. Consumo de la API Wikipedia
+Se comprobó que la aplicación Dolores Hoy permite realizar búsquedas mediante la API de Wikipedia en español. Se utilizó como ejemplo el tema "Dolores Hidalgo", verificando que se muestra el título y un resumen de la información consultada.
+[Pantallas](screenshots/09_api_wikipedia.png)
+
+### Prueba 10. Consumo de la API NASA APOD
+Se comprobó que la aplicación Dolores Hoy consulta correctamente la API NASA APOD para obtener información astronómica. Se verificó que muestra la fotografía, su título y la descripción correspondiente.
+[Pantallas](screenshots/10_api_nasa.png)
+
 

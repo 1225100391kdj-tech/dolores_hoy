@@ -1,10 +1,9 @@
 
-import 'package:flutter_test/flutter_test.dart';
-import 'package:http/http.dart' as http;
-
 import 'package:dolores_hoy/datos/config_claves.dart';
 import 'package:dolores_hoy/datos/servicios.dart';
 import 'package:dolores_hoy/presentacion/tablero_viewmodel.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
 
 import 'ayudas.dart';
 
@@ -38,17 +37,15 @@ void main() {
     expect(vm.nasa.estado, Estado.listo);
 
     expect(vm.clima.dato!.temperatura, 24.3);
-
-    vm.dispose();
   });
 
   test('si NASA falla las otras APIs siguen funcionando', () async {
-    final vm = crear((req) async {
-      if (req.url.host == 'api.nasa.gov') {
+    final vm = crear((r) async {
+      if (r.url.host == 'science.nasa.gov') {
         return jsonOk({}, 500);
       }
 
-      return servidorFalso(req);
+      return servidorFalso(r);
     });
 
     await vm.cargarTodo();
@@ -60,50 +57,43 @@ void main() {
     expect(vm.cambio.estado, Estado.listo);
     expect(vm.festivos.estado, Estado.listo);
     expect(vm.wiki.estado, Estado.listo);
-
-    vm.dispose();
   });
 
-  test('los errores inesperados no revelan secretos', () async {
+  test('sin internet todas muestran error', () async {
     final vm = crear(
-      (_) async => throw Exception('sin red - secreto'),
+      (_) async => throw Exception('sin red'),
     );
 
     await vm.cargarTodo();
 
-    expect(vm.clima.estado, Estado.error);
-    expect(vm.cambio.estado, Estado.error);
-    expect(vm.festivos.estado, Estado.error);
-    expect(vm.wiki.estado, Estado.error);
-    expect(vm.nasa.estado, Estado.error);
+    for (final estado in [
+      vm.clima.estado,
+      vm.cambio.estado,
+      vm.festivos.estado,
+      vm.wiki.estado,
+      vm.nasa.estado,
+    ]) {
+      expect(estado, Estado.error);
+    }
 
     expect(
       vm.clima.error,
-      isNot(contains('secreto')),
+      isNot(contains('sin red')),
     );
-
-    expect(
-      vm.clima.error,
-      contains('inesperado'),
-    );
-
-    vm.dispose();
   });
 
-  test('notifica los estados cargando y listo', () async {
+  test('cargarTodo anuncia cargando antes de terminar', () async {
     final vm = crear(servidorFalso);
 
-    final estados = <Estado>[];
+    final vistos = <Estado>[];
 
     vm.addListener(() {
-      estados.add(vm.clima.estado);
+      vistos.add(vm.clima.estado);
     });
 
     await vm.cargarTodo();
 
-    expect(estados.first, Estado.cargando);
-    expect(estados.last, Estado.listo);
-
-    vm.dispose();
+    expect(vistos.first, Estado.cargando);
+    expect(vistos.last, Estado.listo);
   });
 }

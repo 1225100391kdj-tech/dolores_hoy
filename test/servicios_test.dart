@@ -1,113 +1,89 @@
 
-import 'package:flutter_test/flutter_test.dart';
-
 import 'package:dolores_hoy/datos/config_claves.dart';
 import 'package:dolores_hoy/datos/servicios.dart';
 import 'package:dolores_hoy/dominio/excepciones.dart';
 import 'package:dolores_hoy/dominio/modelos.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 import 'ayudas.dart';
 
 void main() {
-  group('API 1: Clima', () {
-    test('respuesta correcta', () async {
-      final servicio = ServicioClima(
-        seguro((req) async {
-          expect(req.url.host, 'api.open-meteo.com');
+  group('API 1: Clima (Open-Meteo)', () {
+    test('convierte la respuesta en Clima', () async {
+      final s = ServicioClima(seguro((req) async {
+        expect(req.url.host, 'api.open-meteo.com');
+        expect(req.url.queryParameters['latitude'], '21.1561');
+        return jsonOk(jsonClima);
+      }));
 
-          expect(
-            req.url.queryParameters['latitude'],
-            '21.1561',
-          );
+      final c = await s.actual();
 
-          return jsonOk(jsonClima);
-        }),
-      );
-
-      final clima = await servicio.actual();
-
-      expect(clima.temperatura, 24.3);
-      expect(clima.humedad, 41);
-      expect(clima.codigo, 1);
+      expect(c.temperatura, 24.3);
+      expect(c.humedad, 41);
+      expect(c.codigo, 1);
     });
 
-    test('rechaza coordenadas inválidas', () {
-      final servicio = ServicioClima(
+    test('rechaza coordenadas fuera de rango', () {
+      final s = ServicioClima(
         seguro((_) async => jsonOk(jsonClima)),
       );
 
       expect(
-        servicio.actual(lat: 200),
+        s.actual(lat: 200),
         throwsA(isA<EntradaInvalidaException>()),
       );
     });
 
-    test('rechaza JSON incompleto', () {
-      final servicio = ServicioClima(
+    test('JSON sin current es invalido', () {
+      final s = ServicioClima(
         seguro((_) async => jsonOk({'otra': 1})),
       );
 
       expect(
-        servicio.actual(),
+        s.actual(),
         throwsA(isA<RespuestaInvalidaException>()),
       );
     });
 
-    test('traduce códigos del clima', () {
+    test('describirClima traduce codigos', () {
       expect(describirClima(0).$2, 'Despejado');
       expect(describirClima(63).$2, 'Lluvia');
       expect(describirClima(95).$2, 'Tormenta');
     });
   });
 
-  group('API 2: Tipo de cambio', () {
-    test('calcula pesos por dólar y euro', () async {
-      final servicio = ServicioCambio(
-        seguro((_) async => jsonOk({
-          'base': 'MXN',
-          'date': '2026-10-28',
-          'rates': {
-            'USD': 0.05,
-            'EUR': 0.04,
-          },
-        })),
+  group('API 2: Tipo de cambio (Frankfurter)', () {
+    test('calcula pesos por dolar invirtiendo la tasa', () async {
+      final s = ServicioCambio(
+        seguro(
+          (_) async => jsonOk({
+            'base': 'MXN',
+            'date': '2026-10-28',
+            'rates': {
+              'USD': 0.05,
+              'EUR': 0.04,
+            },
+          }),
+        ),
       );
 
-      final cambio = await servicio.deMxn();
+      final t = await s.deMxn();
 
       expect(
-        cambio.pesosPorUnidad('USD'),
-        closeTo(20, 0.0001),
-      );
-
-      expect(
-        cambio.pesosPorUnidad('EUR'),
-        closeTo(25, 0.0001),
-      );
-    });
-
-    test('rechaza tasas inválidas', () {
-      final servicio = ServicioCambio(
-        seguro((_) async => jsonOk({
-          'base': 'MXN',
-          'date': '2026-10-28',
-          'rates': {
-            'USD': 0,
-            'EUR': 0.04,
-          },
-        })),
+        t.pesosPorUnidad('USD'),
+        closeTo(20.0, 0.0001),
       );
 
       expect(
-        servicio.deMxn(),
-        throwsA(isA<RespuestaInvalidaException>()),
+        t.pesosPorUnidad('EUR'),
+        closeTo(25.0, 0.0001),
       );
     });
   });
 
-  group('API 3: Días festivos', () {
-    test('muestra próximos días festivos', () async {
-      final servicio = ServicioFestivos(
+  group('API 3: Festivos (Nager.Date)', () {
+    test('devuelve solo los proximos en orden', () async {
+      final s = ServicioFestivos(
         seguro((req) async {
           expect(
             req.url.path,
@@ -118,45 +94,45 @@ void main() {
         }),
       );
 
-      final resultado = await servicio.proximos(
+      final r = await s.proximos(
         hoy: DateTime(2026, 10, 29),
         cuantos: 2,
       );
 
       expect(
-        resultado.map((f) => f.nombre),
+        r.map((f) => f.nombre),
         ['Día de la Revolución', 'Navidad'],
       );
     });
 
-    test('incluye el día festivo actual', () async {
-      final servicio = ServicioFestivos(
+    test('incluye el festivo de hoy mismo', () async {
+      final s = ServicioFestivos(
         seguro((_) async => jsonOk(jsonFestivos)),
       );
 
-      final resultado = await servicio.proximos(
+      final r = await s.proximos(
         hoy: DateTime(2026, 12, 25),
         cuantos: 5,
       );
 
-      expect(resultado.single.nombre, 'Navidad');
+      expect(r.single.nombre, 'Navidad');
     });
 
-    test('rechaza años fuera de rango', () {
-      final servicio = ServicioFestivos(
+    test('rechaza años absurdos', () {
+      final s = ServicioFestivos(
         seguro((_) async => jsonOk(jsonFestivos)),
       );
 
       expect(
-        servicio.proximos(anio: 3000),
+        s.proximos(anio: 3000),
         throwsA(isA<EntradaInvalidaException>()),
       );
     });
   });
 
   group('API 4: Wikipedia', () {
-    test('busca información de Dolores Hidalgo', () async {
-      final servicio = ServicioWikipedia(
+    test('pide el resumen con guiones bajos', () async {
+      final s = ServicioWikipedia(
         seguro((req) async {
           expect(req.url.host, 'es.wikipedia.org');
 
@@ -169,129 +145,158 @@ void main() {
         }),
       );
 
-      final wiki = await servicio.resumen(
-        'Dolores Hidalgo',
-      );
+      final r = await s.resumen('Dolores Hidalgo');
 
-      expect(wiki.titulo, 'Dolores Hidalgo');
-      expect(wiki.urlImagen, startsWith('https://'));
+      expect(r.titulo, 'Dolores Hidalgo');
+      expect(r.urlImagen, startsWith('https://'));
     });
 
-    test('rechaza entradas vacías', () {
+    test('un tema con / no escapa de la ruta', () async {
+      final s = ServicioWikipedia(
+        seguro((req) async {
+          expect(req.url.pathSegments.length, 5);
+          expect(req.url.pathSegments.last, '../../admin');
+
+          return jsonOk(jsonWiki);
+        }),
+      );
+
+      await s.resumen('../../admin');
+    });
+
+    test('rechaza entradas invalidas', () {
       expect(
         () => ServicioWikipedia.normalizarTema('   '),
         throwsA(isA<EntradaInvalidaException>()),
       );
-    });
 
-    test('rechaza entradas demasiado largas', () {
       expect(
         () => ServicioWikipedia.normalizarTema('a' * 81),
         throwsA(isA<EntradaInvalidaException>()),
       );
-    });
 
-    test('rechaza caracteres no permitidos', () {
       expect(
-        () => ServicioWikipedia.normalizarTema(
-          'hola\nmundo',
-        ),
+        () => ServicioWikipedia.normalizarTema('hola\nmundo'),
         throwsA(isA<EntradaInvalidaException>()),
       );
     });
 
-    test('rechaza imágenes HTTP', () async {
-      final servicio = ServicioWikipedia(
-        seguro((_) async => jsonOk({
-          'title': 'X',
-          'extract': 'Y',
-          'thumbnail': {
-            'source': 'http://inseguro.com/imagen.jpg',
-          },
-        })),
+    test('ignora miniaturas no HTTPS', () async {
+      final s = ServicioWikipedia(
+        seguro(
+          (_) async => jsonOk({
+            'title': 'X',
+            'extract': 'Y',
+            'thumbnail': {
+              'source': 'http://inseguro.com/a.jpg',
+            },
+          }),
+        ),
       );
 
-      final wiki = await servicio.resumen('X');
-
-      expect(wiki.urlImagen, isNull);
+      expect(
+        (await s.resumen('X')).urlImagen,
+        isNull,
+      );
     });
   });
 
-  group('API 5: NASA', () {
-    test('envía correctamente la clave API', () async {
-      final servicio = ServicioNasa(
+  group('API 5: NASA APOD', () {
+    test('envia correctamente la clave API', () async {
+      final s = ServicioNasa(
         seguro((req) async {
+          expect(req.url.host, 'science.nasa.gov');
+
+          expect(
+            req.url.path,
+            '/wp-json/wp/v2/apod-basic',
+          );
+
           expect(
             req.url.queryParameters['api_key'],
             'MI_CLAVE',
           );
 
-          return jsonOk(jsonNasa);
+          return jsonOk([jsonNasa]);
         }),
         const ConfigClaves(nasa: 'MI_CLAVE'),
       );
 
-      final foto = await servicio.fotoDelDia();
+      final f = await s.fotoDelDia();
 
-      expect(foto.titulo, 'Nebulosa de ejemplo');
+      expect(f.titulo, 'Nebulosa de ejemplo');
+
+      expect(
+        f.urlImagen,
+        'https://assets.science.nasa.gov/ejemplo.jpg',
+      );
     });
 
-    test('no consulta NASA sin clave', () {
+    test('NASA no consulta sin clave', () {
       var llamado = false;
 
-      final servicio = ServicioNasa(
+      final s = ServicioNasa(
         seguro((_) async {
           llamado = true;
-          return jsonOk(jsonNasa);
+          return jsonOk([jsonNasa]);
         }),
         const ConfigClaves(nasa: '  '),
       );
 
       expect(
-        servicio.fotoDelDia(),
+        s.fotoDelDia(),
         throwsA(isA<ClaveFaltanteException>()),
       );
 
       expect(llamado, false);
     });
 
-    test('no muestra videos como imágenes', () async {
-      final servicio = ServicioNasa(
-        seguro((_) async => jsonOk({
-          ...jsonNasa,
-          'media_type': 'video',
-          'url': 'https://youtube.com/video',
-        })),
+    test('si NASA publica video no muestra imagen', () async {
+      final s = ServicioNasa(
+        seguro(
+          (_) async => jsonOk([
+            {
+              ...jsonNasa,
+              'media_type': 'video',
+            },
+          ]),
+        ),
         const ConfigClaves(nasa: 'K'),
       );
 
-      final foto = await servicio.fotoDelDia();
-
-      expect(foto.urlImagen, isNull);
+      expect(
+        (await s.fotoDelDia()).urlImagen,
+        isNull,
+      );
     });
 
-    test('rechaza imágenes HTTP inseguras', () async {
-      final servicio = ServicioNasa(
-        seguro((_) async => jsonOk({
-          ...jsonNasa,
-          'url': 'http://apod.nasa.gov/imagen.jpg',
-        })),
+    test('NASA rechaza imagenes HTTP inseguras', () async {
+      final s = ServicioNasa(
+        seguro(
+          (_) async => jsonOk([
+            {
+              ...jsonNasa,
+              'hdurl': 'http://inseguro.com/a.jpg',
+            },
+          ]),
+        ),
         const ConfigClaves(nasa: 'K'),
       );
 
-      final foto = await servicio.fotoDelDia();
-
-      expect(foto.urlImagen, isNull);
+      expect(
+        (await s.fotoDelDia()).urlImagen,
+        isNull,
+      );
     });
 
-    test('detecta clave inválida', () {
-      final servicio = ServicioNasa(
+    test('403 indica que la clave no es valida', () {
+      final s = ServicioNasa(
         seguro((_) async => jsonOk({}, 403)),
         const ConfigClaves(nasa: 'MALA'),
       );
 
       expect(
-        servicio.fotoDelDia(),
+        s.fotoDelDia(),
         throwsA(
           isA<ErrorServidorException>().having(
             (e) => e.toString(),
@@ -299,6 +304,18 @@ void main() {
             contains('clave'),
           ),
         ),
+      );
+    });
+
+    test('una respuesta vacia se rechaza', () {
+      final s = ServicioNasa(
+        seguro((_) async => jsonOk([])),
+        const ConfigClaves(nasa: 'K'),
+      );
+
+      expect(
+        s.fotoDelDia(),
+        throwsA(isA<RespuestaInvalidaException>()),
       );
     });
   });

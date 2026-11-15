@@ -1,12 +1,14 @@
 
 import 'dart:convert';
 
+import 'package:dolores_hoy/datos/cliente_seguro.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
-import 'package:dolores_hoy/datos/cliente_seguro.dart';
 
-// Crear respuestas JSON simuladas.
-http.Response jsonOk(Object cuerpo, [int estado = 200]) =>
+http.Response jsonOk(
+  Object cuerpo, [
+  int estado = 200,
+]) =>
     http.Response.bytes(
       utf8.encode(jsonEncode(cuerpo)),
       estado,
@@ -15,7 +17,6 @@ http.Response jsonOk(Object cuerpo, [int estado = 200]) =>
       },
     );
 
-// Crear un cliente HTTP de pruebas.
 ClienteSeguro seguro(
   Future<http.Response> Function(http.Request) manejador, {
   Duration? espera,
@@ -27,7 +28,7 @@ ClienteSeguro seguro(
       maxBytes: maxBytes ?? 1024 * 1024,
     );
 
-// Respuesta simulada del clima.
+// Datos simulados de Open-Meteo.
 final jsonClima = {
   'current': {
     'time': '2026-10-29T14:00',
@@ -35,10 +36,10 @@ final jsonClima = {
     'relative_humidity_2m': 41,
     'weather_code': 1,
     'wind_speed_10m': 9.4,
-  }
+  },
 };
 
-// Respuesta simulada del tipo de cambio.
+// Datos simulados de Frankfurter.
 final jsonCambio = {
   'amount': 1.0,
   'base': 'MXN',
@@ -49,7 +50,7 @@ final jsonCambio = {
   },
 };
 
-// Respuesta simulada de días festivos.
+// Datos simulados de Nager.Date.
 final jsonFestivos = [
   {
     'date': '2026-01-01',
@@ -73,7 +74,7 @@ final jsonFestivos = [
   },
 ];
 
-// Respuesta simulada de Wikipedia.
+// Datos simulados de Wikipedia.
 final jsonWiki = {
   'title': 'Dolores Hidalgo',
   'extract':
@@ -84,18 +85,21 @@ final jsonWiki = {
   },
 };
 
-// Respuesta simulada de NASA.
+// Datos simulados de NASA.
 final jsonNasa = {
   'date': '2026-10-29',
   'title': 'Nebulosa de ejemplo',
   'explanation': 'Una imagen de prueba.',
   'media_type': 'image',
-  'url': 'https://apod.nasa.gov/apod/image/ejemplo.jpg',
+  'url': 'https://science.nasa.gov/image-article/ejemplo/',
+  'hdurl': 'https://assets.science.nasa.gov/ejemplo.jpg',
 };
 
-// Servidor falso para las cinco APIs.
-Future<http.Response> servidorFalso(http.Request solicitud) async {
-  switch (solicitud.url.host) {
+// Servidor simulado para las cinco APIs.
+Future<http.Response> servidorFalso(
+  http.Request r,
+) async {
+  switch (r.url.host) {
     case 'api.open-meteo.com':
       return jsonOk(jsonClima);
 
@@ -108,6 +112,7 @@ Future<http.Response> servidorFalso(http.Request solicitud) async {
     case 'es.wikipedia.org':
       return jsonOk(jsonWiki);
 
+    case 'science.nasa.gov':
     case 'api.nasa.gov':
       return jsonOk(jsonNasa);
   }
